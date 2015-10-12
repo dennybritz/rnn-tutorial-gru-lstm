@@ -6,7 +6,7 @@ import time
 from utils import *
 from lstm_theano import LSTMTheano
 
-VOCABULARY_SIZE = int(os.environ.get('VOCABULARY_SIZE', '800'))
+VOCABULARY_SIZE = int(os.environ.get('VOCABULARY_SIZE', '8000'))
 HIDDEN_DIM = int(os.environ.get('HIDDEN_DIM', '80'))
 LEARNING_RATE = float(os.environ.get('LEARNING_RATE', '0.005'))
 NEPOCH = int(os.environ.get('NEPOCH', '100'))
@@ -29,5 +29,5 @@ print "SGD Step time: %f milliseconds" % ((t2 - t1) * 1000.)
 sys.stdout.flush()
 
 # Train model
-train_with_sgd(model, X_train[:100], y_train[:100], nepoch=NEPOCH, learning_rate=LEARNING_RATE,
+train_with_sgd(model, X_train, y_train, nepoch=NEPOCH, learning_rate=LEARNING_RATE,
   evaluate_loss_after=5, save_every=5)
