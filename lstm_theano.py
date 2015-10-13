@@ -50,21 +50,22 @@ class LSTMTheano:
         y = T.ivector('y')
         
         def forward_prop_step(x_t, c_t_prev, s_t_prev):
-            # This is how we calculated the hidden state in a simple RNN. No longer!
-            # s_t = T.tanh(U[:,x_t] + W.dot(s_t_prev))
-            
-            # LSTM hidden state calculation
-            i_t = T.nnet.sigmoid(U_i[:,x_t] + W_i.dot(s_t_prev) + b_i)
-            f_t = T.nnet.sigmoid(U_f[:,x_t] + W_f.dot(s_t_prev) + b_f)
-            o_t = T.nnet.sigmoid(U_o[:,x_t] + W_o.dot(s_t_prev) + b_o)
-            g_t = T.tanh(U_g[:,x_t] + W_g.dot(s_t_prev) + b_g)
-            c_t = c_t_prev * f_t + g_t * i_t
-            s_t = T.tanh(c_t) * o_t
-            
-            # Final output calculation
-            o_t = T.nnet.softmax(V.dot(s_t) + b_V)
-            
-            return [o_t[0], c_t, s_t]
+              # This is how we calculated the hidden state in a simple RNN. No longer!
+              # s_t = T.tanh(U[:,x_t] + W.dot(s_t_prev))
+              
+              # LSTM hidden state calculation
+              i_t = T.nnet.sigmoid(U_i[:,x_t] + W_i.dot(s_t_prev) + b_i)
+              f_t = T.nnet.sigmoid(U_f[:,x_t] + W_f.dot(s_t_prev) + b_f)
+              o_t = T.nnet.sigmoid(U_o[:,x_t] + W_o.dot(s_t_prev) + b_o)
+              g_t = T.tanh(U_g[:,x_t] + W_g.dot(s_t_prev) + b_g)
+              c_t = c_t_prev * f_t + g_t * i_t
+              s_t = T.tanh(c_t) * o_t
+              
+              # Final output calculation
+              # Theano's softmax returns a matrix with one row, we only need the row
+              o_t = T.nnet.softmax(V.dot(s_t) + b_V)[0]
+
+      return [o_t, c_t, s_t]
         
         [o,c,s], updates = theano.scan(
             forward_prop_step,
