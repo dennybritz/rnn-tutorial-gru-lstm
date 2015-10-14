@@ -11,6 +11,7 @@ VOCABULARY_SIZE = int(os.environ.get('VOCABULARY_SIZE', '8000'))
 HIDDEN_DIM = int(os.environ.get('HIDDEN_DIM', '80'))
 LEARNING_RATE = float(os.environ.get('LEARNING_RATE', '0.001'))
 NEPOCH = int(os.environ.get('NEPOCH', '100'))
+LOSS_SUBSAMPLE = int(os.environ.get('LOSS_SUBSAMPLE', '5000'))
 MODEL_FILE = os.environ.get('MODEL_FILE')
 
 # Load and pre-process data
@@ -31,4 +32,4 @@ sys.stdout.flush()
 
 # Train model
 train_with_sgd(model, X_train, y_train, nepoch=NEPOCH, learning_rate=LEARNING_RATE,
-  evaluate_loss_after=1, subsample_loss=5000, save_every=1)
+  evaluate_loss_after=1, subsample_loss=LOSS_SUBSAMPLE, save_every=1)
