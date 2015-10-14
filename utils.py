@@ -118,11 +118,11 @@ def save_model_parameters_theano(outfile, model):
 def load_model_parameters_theano(path, modelClass=GRUTheano):
     npzfile = np.load(path)
     U, W, V, b, b2 = npzfile["U"], npzfile["W"], npzfile["V"], npzfile["b"], npzfile["b2"]
-    hidden_dim, word_dim = U.shape[1], U_i.shape[2]
+    hidden_dim, word_dim = U.shape[1], U.shape[2]
     print "Building model model from %s with hidden_dim=%d word_dim=%d" % (path, hidden_dim, word_dim)
     sys.stdout.flush()
     model = modelClass(word_dim, hidden_dim=hidden_dim)
-    model.U.set_value()
+    model.U.set_value(U)
     model.W.set_value(W)
     model.V.set_value(V)
     model.b.set_value(b)
