@@ -9,6 +9,7 @@ import sys
 import operator
 from datetime import datetime
 from lstm_theano import LSTMTheano
+from gru_theano import GRUTheano
 
 sentence_start_token = "SENTENCE_START"
 sentence_end_token = "SENTENCE_END"
@@ -106,33 +107,27 @@ def generate_sentence(model):
 
 
 def save_model_parameters_theano(outfile, model):
-    U_i, U_f, U_o, U_g, W_i, W_f, W_o, W_g, V, b_i, b_f, b_o, b_g, b_V = [
-        model.U_i.get_value(), model.U_f.get_value(), model.U_o.get_value(), model.U_g.get_value(),
-        model.W_i.get_value(), model.W_f.get_value(), model.W_o.get_value(), model.W_g.get_value(),
-        model.V.get_value(),
-        model.b_i.get_value(), model.b_f.get_value(), model.b_o.get_value(), model.b_g.get_value(), model.b_V.get_value()]
-    np.savez(outfile, U_i=U_i, U_f=U_f, U_o=U_o, U_g=U_g,
-            W_i=W_i, W_f=W_f, W_o=W_o, W_g=W_g,
-            V=V, b_V=b_V,
-            b_i=b_i, b_f=b_f, b_o=b_o, b_g=b_g)
+    np.savez(outfile,
+      U=model.U.get_value(),
+      W=model.W.get_value(),
+      V=model.V.get_value(),
+      b=model.b.get_value(),
+      b2=model.b2.get_value())
     print "Saved model parameters to %s." % outfile
 
-def load_model_parameters_theano(path):
+def load_model_parameters_theano(path, modelClass=GRUTheano):
     npzfile = np.load(path)
-    U_i, U_f, U_o, U_g = npzfile["U_i"], npzfile["U_f"], npzfile["U_o"], npzfile["U_g"]
-    W_i, W_f, W_o, W_g = npzfile["W_i"], npzfile["W_f"], npzfile["W_o"], npzfile["W_g"]
-    b_i, b_f, b_o, b_g = npzfile["b_i"], npzfile["b_f"], npzfile["b_o"], npzfile["b_g"]
-    V, b_V = npzfile["V"], npzfile["b_V"]
-    hidden_dim, word_dim = U_i.shape[0], U_i.shape[1]
+    U, W, V, b, b2 = npzfile["U"], npzfile["W"], npzfile["V"], npzfile["b"], npzfile["b2"]
+    hidden_dim, word_dim = U.shape[1], U_i.shape[2]
     print "Building model model from %s with hidden_dim=%d word_dim=%d" % (path, hidden_dim, word_dim)
     sys.stdout.flush()
-    model = LSTMTheano(word_dim, hidden_dim=hidden_dim)
-    model.U_i.set_value(U_i); model.U_f.set_value(U_f); model.U_o.set_value(U_o); model.U_g.set_value(U_g)
-    model.W_i.set_value(W_i); model.W_f.set_value(W_f); model.W_o.set_value(W_o); model.W_g.set_value(W_g)
-    model.b_i.set_value(b_i); model.b_f.set_value(b_f); model.b_o.set_value(b_o); model.b_g.set_value(b_g)
-    model.V.set_value(V); model.b_V.set_value(b_V)
+    model = modelClass(word_dim, hidden_dim=hidden_dim)
+    model.U.set_value()
+    model.W.set_value(W)
+    model.V.set_value(V)
+    model.b.set_value(b)
+    model.b2.set_value(b2)
     return model    
-
 
 def gradient_check_theano(model, x, y, h=0.001, error_threshold=0.01):
     # Overwrite the bptt attribute. We need to backpropagate all the way to get the correct gradient
