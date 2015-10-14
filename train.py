@@ -5,10 +5,11 @@ import os
 import time
 from utils import *
 from lstm_theano import LSTMTheano
+from gru_theano import *
 
 VOCABULARY_SIZE = int(os.environ.get('VOCABULARY_SIZE', '8000'))
 HIDDEN_DIM = int(os.environ.get('HIDDEN_DIM', '80'))
-LEARNING_RATE = float(os.environ.get('LEARNING_RATE', '0.005'))
+LEARNING_RATE = float(os.environ.get('LEARNING_RATE', '0.001'))
 NEPOCH = int(os.environ.get('NEPOCH', '100'))
 MODEL_FILE = os.environ.get('MODEL_FILE')
 
@@ -19,15 +20,15 @@ X_train, y_train, word_to_index, index_to_word = load_and_proprocess_data(VOCABU
 if MODEL_FILE != None:
     model = load_model_parameters_theano(MODEL_FILE)
 else:
-    model = LSTMTheano(VOCABULARY_SIZE, hidden_dim=HIDDEN_DIM)
+    model = GRUTheano(VOCABULARY_SIZE, hidden_dim=HIDDEN_DIM)
 
 # Print SGD step time
 t1 = time.time()
-model.sgd_step(X_train[10], y_train[10], 0.005)
+model.sgd_step(X_train[10], y_train[10], LEARNING_RATE)
 t2 = time.time()
 print "SGD Step time: %f milliseconds" % ((t2 - t1) * 1000.)
 sys.stdout.flush()
 
 # Train model
 train_with_sgd(model, X_train, y_train, nepoch=NEPOCH, learning_rate=LEARNING_RATE,
-  evaluate_loss_after=5, save_every=5)
+  evaluate_loss_after=1, subsample_loss=5000, save_every=1)

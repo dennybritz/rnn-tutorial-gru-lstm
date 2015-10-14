@@ -4,7 +4,7 @@ import theano.tensor as T
 import time
 import operator
 
-class LSTMTheano:
+class GRUTheano:
     
     def __init__(self, word_dim, hidden_dim=100, bptt_truncate=4):
         # Assign instance variables
@@ -12,10 +12,10 @@ class LSTMTheano:
         self.hidden_dim = hidden_dim
         self.bptt_truncate = bptt_truncate
         # Randomly initialize the network parameters
-        U = np.random.uniform(-np.sqrt(1./word_dim), np.sqrt(1./word_dim), (4, hidden_dim, word_dim))
-        W = np.random.uniform(-np.sqrt(1./hidden_dim), np.sqrt(1./hidden_dim), (4, hidden_dim, hidden_dim))
+        U = np.random.uniform(-np.sqrt(1./word_dim), np.sqrt(1./word_dim), (3, hidden_dim, word_dim))
+        W = np.random.uniform(-np.sqrt(1./hidden_dim), np.sqrt(1./hidden_dim), (3, hidden_dim, hidden_dim))
+        b = np.zeros((3, hidden_dim))
         V = np.random.uniform(-np.sqrt(1./hidden_dim), np.sqrt(1./hidden_dim), (word_dim, hidden_dim))
-        b = np.zeros((4, hidden_dim))
         b2 = np.zeros(word_dim)
         # Theano: Created shared variables
         self.U = theano.shared(name='U_i', value=U.astype(theano.config.floatX))
@@ -41,28 +41,26 @@ class LSTMTheano:
         x = T.ivector('x')
         y = T.ivector('y')
         
-        def forward_prop_step(x_t, c_t_prev, s_t_prev):
+        def forward_prop_step(x_t, s_t_prev):
             # This is how we calculated the hidden state in a simple RNN. No longer!
             # s_t = T.tanh(U[:,x_t] + W.dot(s_t_prev))
               
             # LSTM hidden state calculation
-            i_t = T.nnet.sigmoid(U[0][:,x_t] + W[0].dot(s_t_prev) + b[0])
-            f_t = T.nnet.sigmoid(U[1][:,x_t] + W[1].dot(s_t_prev) + b[1])
-            o_t = T.nnet.sigmoid(U[2][:,x_t] + W[2].dot(s_t_prev) + b[2])
-            g_t = T.tanh(U[3][:,x_t] + W[3].dot(s_t_prev) + b[3])
-            c_t = c_t_prev * f_t + g_t * i_t
-            s_t = T.tanh(c_t) * o_t
+            z_t = T.nnet.sigmoid(U[0][:,x_t] + W[0].dot(s_t_prev) + b[0])
+            r_t = T.nnet.sigmoid(U[1][:,x_t] + W[1].dot(s_t_prev) + b[1])
+            c_t = T.tanh(U[2][:,x_t] + W[2].dot(s_t_prev) * r_t + b[2])
+            s_t = (1 - z_t) * c_t + z_t * s_t_prev
               
             # Final output calculation
             # Theano's softmax returns a matrix with one row, we only need the row
             o_t = T.nnet.softmax(V.dot(s_t) + b2)[0]
 
-            return [o_t, c_t, s_t]
+            return [o_t, s_t]
         
-        [o,c,s], updates = theano.scan(
+        [o,s], updates = theano.scan(
             forward_prop_step,
             sequences=x,
-            outputs_info=[None, dict(initial=T.zeros(self.hidden_dim)), dict(initial=T.zeros(self.hidden_dim))],
+            outputs_info=[None, dict(initial=T.zeros(self.hidden_dim))],
             truncate_gradient=self.bptt_truncate)
         
         prediction = T.argmax(o, axis=1)
@@ -106,5 +104,4 @@ class LSTMTheano:
     def calculate_loss(self, X, Y):
         # Divide calculate_loss by the number of words
         num_words = np.sum([len(y) for y in Y])
-        return self.calculate_total_loss(X,Y)/float(num_words) 
-
+        return self.calculate_total_loss(X,Y)/float(num_words)
