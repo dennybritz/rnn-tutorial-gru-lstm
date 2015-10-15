@@ -85,7 +85,7 @@ def train_with_sgd(model, X_train, y_train, learning_rate=0.005, nepoch=100, dec
           filename = "./data/%s-%d-%d-%d.npz" % (model.__class__.__name__, model.hidden_dim, model.word_dim, epoch)
           save_model_parameters_theano(filename, model)
         # For each training example...
-        for i in range(len(y_train)):
+        for i in np.random.permutation(len(y_train)):
             # One SGD step
             model.sgd_step(X_train[i], y_train[i], learning_rate)
             num_examples_seen += 1
