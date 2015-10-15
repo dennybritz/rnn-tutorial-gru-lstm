@@ -22,16 +22,17 @@ def softmax(x):
     xt = np.exp(x - np.max(x))
     return xt / np.sum(xt)
 
-def load_and_proprocess_data(vocabulary_size):
+def load_and_proprocess_data(vocabulary_size, min_sent_characters=40):
 
     # Read the data and append SENTENCE_START and SENTENCE_END tokens
     print "Reading CSV file..."
-    with open('data/reddit-comments-2015-08.csv', 'rb') as f:
+    with open('data/reddit-comments-2015.csv', 'rb') as f:
         reader = csv.reader(f, skipinitialspace=True)
         reader.next()
         # Split full comments into sentences
         sentences = itertools.chain(*[nltk.sent_tokenize(x[0].decode('utf-8').lower()) for x in reader])
         # Append SENTENCE_START and SENTENCE_END
+        sentences = [s for s in sentences if len(s) >= min_sent_characters]
         sentences = ["%s %s %s" % (sentence_start_token, x, sentence_end_token) for x in sentences]
     print "Parsed %d sentences." % (len(sentences))
 
