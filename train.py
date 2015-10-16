@@ -9,7 +9,7 @@ from gru_theano import *
 
 VOCABULARY_SIZE = int(os.environ.get('VOCABULARY_SIZE', '8000'))
 HIDDEN_DIM = int(os.environ.get('HIDDEN_DIM', '80'))
-LEARNING_RATE = float(os.environ.get('LEARNING_RATE', '0.00001'))
+LEARNING_RATE = float(os.environ.get('LEARNING_RATE', '0.001'))
 NEPOCH = int(os.environ.get('NEPOCH', '100'))
 LOSS_SUBSAMPLE = int(os.environ.get('LOSS_SUBSAMPLE', '5000'))
 MODEL_FILE = os.environ.get('MODEL_FILE')

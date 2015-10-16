@@ -37,7 +37,7 @@ class GRUTheano:
     
     def __theano_build__(self):
         V, U, W, b, b2 = self.V, self.U, self.W, self.b, self.b2
-        mV, mU, mW, mb, mb2 = self.mV, self.mU, self.mW, self.mb, self.mb2
+        # mV, mU, mW, mb, mb2 = self.mV, self.mU, self.mW, self.mb, self.mb2
         
         x = T.ivector('x')
         y = T.ivector('y')
@@ -87,22 +87,30 @@ class GRUTheano:
         self.ce_error = theano.function([x, y], o_error)
         self.bptt = theano.function([x, y], [dU, dW, db, dV, db2])
         
-        # SGD with Momentum
+        # SGD parameters
         learning_rate = T.scalar('learning_rate')
         decay = T.scalar('decay')
+
+        # rmsprop cache updates
+        mU = decay * self.mU + (1 - decay) * T.sqr(dU)
+        mW = decay * self.mW + (1 - decay) * T.sqr(dW)
+        mV = decay * self.mV + (1 - decay) * T.sqr(dV)
+        mb = decay * self.mb + (1 - decay) * T.sqr(db)
+        mb2 = decay * self.mb2 + (1 - decay) * T.sqr(db2)
+
         self.sgd_step = theano.function(
-            [x, y, learning_rate, theano.Param(decay, default=0.99)],
+            [x, y, learning_rate, theano.Param(decay, default=0.9)],
             [], 
             updates=[(U, U - learning_rate * dU / T.sqrt(mU + 1e-8)),                     
                      (W, W - learning_rate * dW / T.sqrt(mW + 1e-8)),
                      (V, V - learning_rate * dV / T.sqrt(mV + 1e-8)),
                      (b, b - learning_rate * db / T.sqrt(mb + 1e-8)),
                      (b2, b2 - learning_rate * db2 / T.sqrt(mb2 + 1e-8)),
-                     (mU, decay * mU + (1 - decay) * T.sqr(dU)),
-                     (mW, decay * mW + (1 - decay) * T.sqr(dW)),
-                     (mV, decay * mV + (1 - decay) * T.sqr(dV)),
-                     (mb, decay * mb + (1 - decay) * T.sqr(db)),
-                     (mb2, decay * mb2 + (1 - decay) * T.sqr(db2))
+                     (self.mU, mU),
+                     (self.mW, mW),
+                     (self.mV, mV),
+                     (self.mb, mb),
+                     (self.mb2, mb2)
                     ])
     def calculate_total_loss(self, X, Y):
         return np.sum([self.ce_error(x,y) for x,y in zip(X,Y)])
@@ -111,4 +119,3 @@ class GRUTheano:
         # Divide calculate_loss by the number of words
         num_words = np.sum([len(y) for y in Y])
         return self.calculate_total_loss(X,Y)/float(num_words)
-

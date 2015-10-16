@@ -26,7 +26,7 @@ def load_and_proprocess_data(vocabulary_size, min_sent_characters=30):
 
     # Read the data and append SENTENCE_START and SENTENCE_END tokens
     print "Reading CSV file..."
-    with open('data/reddit-comments-2015.csv', 'rb') as f:
+    with open('data/reddit-comments-2015-08.csv', 'rb') as f:
         reader = csv.reader(f, skipinitialspace=True)
         reader.next()
         # Split full comments into sentences
