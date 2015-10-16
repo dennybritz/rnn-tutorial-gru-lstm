@@ -22,7 +22,7 @@ def softmax(x):
     xt = np.exp(x - np.max(x))
     return xt / np.sum(xt)
 
-def load_and_proprocess_data(vocabulary_size, min_sent_characters=30):
+def load_and_proprocess_data(vocabulary_size, min_sent_characters=20):
 
     # Read the data and append SENTENCE_START and SENTENCE_END tokens
     print "Reading CSV file..."
