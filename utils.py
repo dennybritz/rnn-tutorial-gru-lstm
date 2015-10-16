@@ -22,7 +22,7 @@ def softmax(x):
     xt = np.exp(x - np.max(x))
     return xt / np.sum(xt)
 
-def load_and_proprocess_data(vocabulary_size, min_sent_characters=40):
+def load_and_proprocess_data(vocabulary_size, min_sent_characters=30):
 
     # Read the data and append SENTENCE_START and SENTENCE_END tokens
     print "Reading CSV file..."
@@ -31,8 +31,10 @@ def load_and_proprocess_data(vocabulary_size, min_sent_characters=40):
         reader.next()
         # Split full comments into sentences
         sentences = itertools.chain(*[nltk.sent_tokenize(x[0].decode('utf-8').lower()) for x in reader])
-        # Append SENTENCE_START and SENTENCE_END
+        # Filter sentences
         sentences = [s for s in sentences if len(s) >= min_sent_characters]
+        sentences = [s for s in sentences if "http" not in s]
+        # Append SENTENCE_START and SENTENCE_END
         sentences = ["%s %s %s" % (sentence_start_token, x, sentence_end_token) for x in sentences]
     print "Parsed %d sentences." % (len(sentences))
 
@@ -63,7 +65,7 @@ def load_and_proprocess_data(vocabulary_size, min_sent_characters=40):
     return X_train, y_train, word_to_index, index_to_word
 
 
-def train_with_sgd(model, X_train, y_train, learning_rate=0.005, nepoch=100, decay=0.9,
+def train_with_sgd(model, X_train, y_train, learning_rate=0.005, nepoch=100, decay=0.99,
                    evaluate_loss_after=5, subsample_loss=5000, save_every=None):
     # We keep track of the losses so we can plot them later
     losses = []
@@ -87,7 +89,7 @@ def train_with_sgd(model, X_train, y_train, learning_rate=0.005, nepoch=100, dec
         # For each training example...
         for i in np.random.permutation(len(y_train)):
             # One SGD step
-            model.sgd_step(X_train[i], y_train[i], learning_rate)
+            model.sgd_step(X_train[i], y_train[i], learning_rate, decay)
             num_examples_seen += 1
     return losses
 

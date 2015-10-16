@@ -91,7 +91,7 @@ class GRUTheano:
         learning_rate = T.scalar('learning_rate')
         decay = T.scalar('decay')
         self.sgd_step = theano.function(
-            [x, y, learning_rate, theano.Param(decay, default=0.9)],
+            [x, y, learning_rate, theano.Param(decay, default=0.99)],
             [], 
             updates=[(U, U - learning_rate * dU / T.sqrt(mU + 1e-8)),                     
                      (W, W - learning_rate * dW / T.sqrt(mW + 1e-8)),
