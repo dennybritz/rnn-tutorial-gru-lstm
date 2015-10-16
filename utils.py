@@ -65,7 +65,7 @@ def load_and_proprocess_data(vocabulary_size, min_sent_characters=20):
     return X_train, y_train, word_to_index, index_to_word
 
 
-def train_with_sgd(model, X_train, y_train, learning_rate=0.005, nepoch=100, decay=0.99,
+def train_with_sgd(model, X_train, y_train, learning_rate=0.005, nepoch=100, decay=0.9,
                    evaluate_loss_after=5, subsample_loss=5000, save_every=None):
     # We keep track of the losses so we can plot them later
     losses = []
