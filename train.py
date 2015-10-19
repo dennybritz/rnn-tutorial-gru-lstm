@@ -14,7 +14,7 @@ REG_LAMBDA = float(os.environ.get('REG_LAMBDA', '0'))
 DECAY = float(os.environ.get('DECAY', '0.99'))
 NEPOCH = int(os.environ.get('NEPOCH', '100'))
 LOSS_SUBSAMPLE = int(os.environ.get('LOSS_SUBSAMPLE', '8000'))
-GLOVE_FILE = os.environ.get('GLOVE_FILE', 'data/glove/glove.6B.100d.txt.gz')
+GLOVE_FILE = os.environ.get('GLOVE_FILE', 'data/glove/glove.6B.100d.txt')
 MODEL_FILE = os.environ.get('MODEL_FILE')
 
 # Load and pre-process data
