@@ -196,3 +196,18 @@ def load_stanford_glove(filename):
     np_vectors = np.array(vectors).reshape(len(dct), len(entries))
     return dct, np_vectors
 # EOF
+
+def construct_wv_for_vocabulary(glove_filename, index_to_word):
+  # Load Stanford glove vectors and map indices
+  gdic, gvec = load_stanford_glove(glove_filename)
+  # Construct glove word vectors for vocabulary
+  wv_dim = gvec.shape[1]
+  wv = []
+  for i in range(len(index_to_word)):
+      word = index_to_word[i]
+      if word not in gdic:
+          wv.append(np.zeros(wv_dim))
+      else:
+          wv.append(gvec[gdic[word]])
+  return np.array(wv)
+

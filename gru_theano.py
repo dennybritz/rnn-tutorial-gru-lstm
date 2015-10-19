@@ -7,13 +7,16 @@ import operator
 
 class GRUTheano:
     
-    def __init__(self, word_dim, hidden_dim=100, bptt_truncate=4):
+    def __init__(self, word_dim, hidden_dim=100, reg_lambda=0, wordvec=None):
         # Assign instance variables
         self.word_dim = word_dim
         self.hidden_dim = hidden_dim
-        self.bptt_truncate = bptt_truncate
-        # Randomly initialize the network parameters
-        U = np.random.uniform(-np.sqrt(1./word_dim), np.sqrt(1./word_dim), (3, hidden_dim, word_dim))
+        self.reg_lambda = reg_lambda
+        # Initialize the network parameters
+        if wordvec != None:
+            U = np.array([wordvec.T, wordvec.T, wordvec.T])
+        else:
+            U = np.random.uniform(-np.sqrt(1./word_dim), np.sqrt(1./word_dim), (3, hidden_dim, word_dim))
         W = np.random.uniform(-np.sqrt(1./hidden_dim), np.sqrt(1./hidden_dim), (3, hidden_dim, hidden_dim))
         b = np.zeros((3, hidden_dim))
         V = np.random.uniform(-np.sqrt(1./hidden_dim), np.sqrt(1./hidden_dim), (word_dim, hidden_dim))
@@ -68,11 +71,16 @@ class GRUTheano:
         [o,s], updates = theano.scan(
             forward_prop_step,
             sequences=x,
-            outputs_info=[None, dict(initial=T.zeros(self.hidden_dim))],
-            truncate_gradient=self.bptt_truncate)
+            outputs_info=[None, dict(initial=T.zeros(self.hidden_dim))])
         
         prediction = T.argmax(o, axis=1)
         o_error = T.sum(T.nnet.categorical_crossentropy(o, y))
+        
+        # Regularization cost
+        reg_cost = self.reg_lambda/2. * \
+            (T.sum(T.sqr(V)) + T.sum(T.sqr(U)) + T.sum(T.sqr(W)) + T.sum(T.sqr(b)) + T.sum(T.sqr(b2)))
+        # Total cost
+        cost = o_error + reg_cost
         
         # Gradients
         dU = T.grad(o_error, U)
@@ -84,20 +92,20 @@ class GRUTheano:
         # Assign functions
         self.forward_propagation = theano.function([x], o)
         self.predict = theano.function([x], prediction)
-        self.ce_error = theano.function([x, y], o_error)
+        self.ce_error = theano.function([x, y], cost)
         self.bptt = theano.function([x, y], [dU, dW, db, dV, db2])
         
         # SGD parameters
         learning_rate = T.scalar('learning_rate')
         decay = T.scalar('decay')
-
+        
         # rmsprop cache updates
         mU = decay * self.mU + (1 - decay) * T.sqr(dU)
         mW = decay * self.mW + (1 - decay) * T.sqr(dW)
         mV = decay * self.mV + (1 - decay) * T.sqr(dV)
         mb = decay * self.mb + (1 - decay) * T.sqr(db)
         mb2 = decay * self.mb2 + (1 - decay) * T.sqr(db2)
-
+        
         self.sgd_step = theano.function(
             [x, y, learning_rate, theano.Param(decay, default=0.9)],
             [], 

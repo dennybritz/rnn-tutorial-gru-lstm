@@ -8,21 +8,24 @@ from lstm_theano import LSTMTheano
 from gru_theano import *
 
 VOCABULARY_SIZE = int(os.environ.get('VOCABULARY_SIZE', '8000'))
-HIDDEN_DIM = int(os.environ.get('HIDDEN_DIM', '80'))
-LEARNING_RATE = float(os.environ.get('LEARNING_RATE', '0.001'))
+HIDDEN_DIM = int(os.environ.get('HIDDEN_DIM', '100'))
+LEARNING_RATE = float(os.environ.get('LEARNING_RATE', '0.00001'))
+REG_LAMBDA = float(os.environ.get('REG_LAMBDA', '0'))
 DECAY = float(os.environ.get('DECAY', '0.9'))
 NEPOCH = int(os.environ.get('NEPOCH', '100'))
-LOSS_SUBSAMPLE = int(os.environ.get('LOSS_SUBSAMPLE', '5000'))
+LOSS_SUBSAMPLE = int(os.environ.get('LOSS_SUBSAMPLE', '8000'))
+GLOVE_FILE = os.environ.get('GLOVE_FILE', 'data/glove/glove.6B.100d.txt.gz')
 MODEL_FILE = os.environ.get('MODEL_FILE')
 
 # Load and pre-process data
 X_train, y_train, word_to_index, index_to_word = load_and_proprocess_data(VOCABULARY_SIZE)
+wv = construct_wv_for_vocabulary(GLOVE_FILE, index_to_word)
 
 # Create or load model instance
 if MODEL_FILE != None:
     model = load_model_parameters_theano(MODEL_FILE)
 else:
-    model = GRUTheano(VOCABULARY_SIZE, hidden_dim=HIDDEN_DIM)
+    model = GRUTheano(VOCABULARY_SIZE, hidden_dim=HIDDEN_DIM, reg_lambda=REG_LAMBDA, wordvec=wv)
 
 # Print SGD step time
 t1 = time.time()
