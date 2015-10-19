@@ -7,6 +7,8 @@ import nltk
 import time
 import sys
 import operator
+import io
+import array
 from datetime import datetime
 from lstm_theano import LSTMTheano
 from gru_theano import GRUTheano
@@ -177,4 +179,20 @@ def gradient_check_theano(model, x, y, h=0.001, error_threshold=0.01):
             it.iternext()
         print "Gradient check for parameter %s passed." % (pname)
 
+def load_stanford_glove(filename):
+    dct = {}
+    vectors = array.array('d')
+    
+    # Read in the data.
+    with io.open(filename, 'r', encoding='utf-8') as savefile:
+        for i, line in enumerate(savefile):
+            tokens = line.split(' ')
+            word = tokens[0]
+            entries = tokens[1:]
+            dct[word] = i
+            vectors.extend(float(x) for x in entries)
+
+    # Infer word vectors dimensions.
+    np_vectors = np.array(vectors).reshape(len(dct), len(entries))
+    return dct, np_vectors
 # EOF
