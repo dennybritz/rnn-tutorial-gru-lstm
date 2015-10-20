@@ -14,18 +14,20 @@ REG_LAMBDA = float(os.environ.get('REG_LAMBDA', '0'))
 DECAY = float(os.environ.get('DECAY', '0.99'))
 NEPOCH = int(os.environ.get('NEPOCH', '100'))
 LOSS_SUBSAMPLE = int(os.environ.get('LOSS_SUBSAMPLE', '8000'))
-GLOVE_FILE = os.environ.get('GLOVE_FILE', 'data/glove/glove.6B.100d.txt')
+GLOVE_FILE = os.environ.get('GLOVE_FILE')
 MODEL_FILE = os.environ.get('MODEL_FILE')
 
 # Load and pre-process data
 X_train, y_train, word_to_index, index_to_word = load_and_proprocess_data(VOCABULARY_SIZE)
-wv = construct_wv_for_vocabulary(GLOVE_FILE, index_to_word)
+wv = None
+if GLOVE_FILE:
+  wv = construct_wv_for_vocabulary(GLOVE_FILE, index_to_word)
 
 # Create or load model instance
 if MODEL_FILE != None:
     model = load_model_parameters_theano(MODEL_FILE)
 else:
-    model = GRUTheano(VOCABULARY_SIZE, hidden_dim=HIDDEN_DIM, reg_lambda=REG_LAMBDA, wordvec=wv)
+    model = GRUTheano(VOCABULARY_SIZE, hidden_dim=HIDDEN_DIM, reg_lambda=REG_LAMBDA, wordvec=wv, bptt_truncate=8)
 
 # Print SGD step time
 t1 = time.time()

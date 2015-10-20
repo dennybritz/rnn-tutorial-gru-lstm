@@ -24,7 +24,7 @@ def softmax(x):
     xt = np.exp(x - np.max(x))
     return xt / np.sum(xt)
 
-def load_and_proprocess_data(vocabulary_size, min_sent_characters=20):
+def load_and_proprocess_data(vocabulary_size, min_sent_characters=0):
 
     # Read the data and append SENTENCE_START and SENTENCE_END tokens
     print "Reading CSV file..."
@@ -117,12 +117,12 @@ def save_model_parameters_theano(outfile, model):
       W=model.W.get_value(),
       V=model.V.get_value(),
       b=model.b.get_value(),
-      b2=model.b2.get_value())
+      c=model.c.get_value())
     print "Saved model parameters to %s." % outfile
 
 def load_model_parameters_theano(path, modelClass=GRUTheano):
     npzfile = np.load(path)
-    U, W, V, b, b2 = npzfile["U"], npzfile["W"], npzfile["V"], npzfile["b"], npzfile["b2"]
+    U, W, V, b, c = npzfile["U"], npzfile["W"], npzfile["V"], npzfile["b"], npzfile["c"]
     hidden_dim, word_dim = U.shape[1], U.shape[2]
     print "Building model model from %s with hidden_dim=%d word_dim=%d" % (path, hidden_dim, word_dim)
     sys.stdout.flush()
@@ -131,7 +131,7 @@ def load_model_parameters_theano(path, modelClass=GRUTheano):
     model.W.set_value(W)
     model.V.set_value(V)
     model.b.set_value(b)
-    model.b2.set_value(b2)
+    model.c.set_value(c)
     return model    
 
 def gradient_check_theano(model, x, y, h=0.001, error_threshold=0.01):
@@ -140,7 +140,7 @@ def gradient_check_theano(model, x, y, h=0.001, error_threshold=0.01):
     # Calculate the gradients using backprop
     bptt_gradients = model.bptt(x, y)
     # List of all parameters we want to chec.
-    model_parameters = ['U', 'W', 'b', 'V', 'b2']
+    model_parameters = ['U', 'W', 'b', 'V', 'c']
     # Gradient check for each parameter
     for pidx, pname in enumerate(model_parameters):
         # Get the actual parameter value from the mode, e.g. model.W
