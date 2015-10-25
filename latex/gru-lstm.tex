@@ -1,0 +1,19 @@
+\documentclass[tikz, border=10pt]{standalone}
+\usetikzlibrary{positioning}
+\usepackage{tkz-graph}
+\begin{document}
+\begin{tikzpicture}
+
+\node[draw, outer sep=2, circle] (x_t) {$x_t$};
+\node[draw, align=center, outer sep=2] (unit_t) [above=of x_t] {GRU/LSTM \\ Unit};
+\node[align=center, outer sep=2] (unit_tprev) [left=of unit_t] {$s_{t-1}$};
+\node[align=center, outer sep=2] (unit_tnext) [right=of unit_t] {$s_{t+1}$};
+\node[outer sep=2, circle] (y_t) [above=of unit_t] {$...$};
+
+\path[->] (x_t) edge (unit_t);
+\path[->] (unit_t) edge (y_t);
+\path[->] (unit_tprev) edge (unit_t);
+\path[->] (unit_t) edge (unit_tnext);
+
+\end{tikzpicture}
+\end{document}

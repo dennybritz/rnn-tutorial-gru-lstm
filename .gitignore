@@ -2,4 +2,3 @@
 *.pyc
 venv
 *.npz
-data/glove

@@ -13,52 +13,48 @@ from datetime import datetime
 from lstm_theano import LSTMTheano
 from gru_theano import GRUTheano
 
-sentence_start_token = "SENTENCE_START"
-sentence_end_token = "SENTENCE_END"
-unknown_token = "UNKNOWN_TOKEN"
-word_to_index = []
-index_to_word = []
+SENTENCE_START_TOKEN = "SENTENCE_START"
+SENTENCE_END_TOKEN = "SENTENCE_END"
+UNKNOWN_TOKEN = "UNKNOWN_TOKEN"
 
+def load_data(filename="data/reddit-comments-2015-08.csv", vocabulary_size=2000, min_sent_characters=0):
 
-def softmax(x):
-    xt = np.exp(x - np.max(x))
-    return xt / np.sum(xt)
-
-def load_and_proprocess_data(vocabulary_size, min_sent_characters=0):
+    word_to_index = []
+    index_to_word = []
 
     # Read the data and append SENTENCE_START and SENTENCE_END tokens
-    print "Reading CSV file..."
-    with open('data/reddit-comments-2015-08.csv', 'rb') as f:
+    print("Reading CSV file...")
+    with open(filename, 'rt') as f:
         reader = csv.reader(f, skipinitialspace=True)
         reader.next()
         # Split full comments into sentences
-        sentences = itertools.chain(*[nltk.sent_tokenize(x[0].decode('utf-8').lower()) for x in reader])
+        sentences = itertools.chain(*[nltk.sent_tokenize(x[0].decode("utf-8").lower()) for x in reader])
         # Filter sentences
         sentences = [s for s in sentences if len(s) >= min_sent_characters]
         sentences = [s for s in sentences if "http" not in s]
         # Append SENTENCE_START and SENTENCE_END
-        sentences = ["%s %s %s" % (sentence_start_token, x, sentence_end_token) for x in sentences]
-    print "Parsed %d sentences." % (len(sentences))
+        sentences = ["%s %s %s" % (SENTENCE_START_TOKEN, x, SENTENCE_END_TOKEN) for x in sentences]
+    print("Parsed %d sentences." % (len(sentences)))
 
     # Tokenize the sentences into words
     tokenized_sentences = [nltk.word_tokenize(sent) for sent in sentences]
 
     # Count the word frequencies
     word_freq = nltk.FreqDist(itertools.chain(*tokenized_sentences))
-    print "Found %d unique words tokens." % len(word_freq.items())
+    print("Found %d unique words tokens." % len(word_freq.items()))
 
     # Get the most common words and build index_to_word and word_to_index vectors
-    vocab = word_freq.most_common(vocabulary_size-1)
-    index_to_word = [x[0] for x in vocab]
-    index_to_word.append(unknown_token)
-    word_to_index = dict([(w, i) for i, w in enumerate(index_to_word)])
+    vocab = sorted(word_freq.items(), key=lambda x: (x[1], x[0]), reverse=True)[:vocabulary_size-2]
+    print("Using vocabulary size %d." % vocabulary_size)
+    print("The least frequent word in our vocabulary is '%s' and appeared %d times." % (vocab[-1][0], vocab[-1][1]))
 
-    print "Using vocabulary size %d." % vocabulary_size
-    print "The least frequent word in our vocabulary is '%s' and appeared %d times." % (vocab[-1][0], vocab[-1][1])
+    sorted_vocab = sorted(vocab, key=operator.itemgetter(1))
+    index_to_word = ["<MASK/>", UNKNOWN_TOKEN] + [x[0] for x in sorted_vocab]
+    word_to_index = dict([(w, i) for i, w in enumerate(index_to_word)])
 
     # Replace all words not in our vocabulary with the unknown token
     for i, sent in enumerate(tokenized_sentences):
-        tokenized_sentences[i] = [w if w in word_to_index else unknown_token for w in sent]
+        tokenized_sentences[i] = [w if w in word_to_index else UNKNOWN_TOKEN for w in sent]
 
     # Create the training data
     X_train = np.asarray([[word_to_index[w] for w in sent[:-1]] for sent in tokenized_sentences])
@@ -67,27 +63,13 @@ def load_and_proprocess_data(vocabulary_size, min_sent_characters=0):
     return X_train, y_train, word_to_index, index_to_word
 
 
-def train_with_sgd(model, X_train, y_train, learning_rate=0.005, nepoch=100, decay=0.9,
-                   evaluate_loss_after=5, subsample_loss=5000, save_every=None):
-    # We keep track of the losses so we can plot them later
-    losses = []
+def train_with_sgd(model, X_train, y_train, learning_rate=0.001, nepoch=20, decay=0.9,
+    callback_every=10000, callback=None):
     num_examples_seen = 0
     for epoch in range(nepoch):
-        # Optionally evaluate the loss
-        if (epoch % evaluate_loss_after == 0):
-            loss = model.calculate_loss(X_train[:subsample_loss], y_train[:subsample_loss])
-            losses.append((num_examples_seen, loss))
-            now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            print "%s: Loss after num_examples_seen=%d epoch=%d: %f" % (now, num_examples_seen, epoch, loss)
-            # Adjust the learning rate if loss increases
-            if (len(losses) > 1 and losses[-1][1] > losses[-2][1]):
-                learning_rate = learning_rate * 0.5    
-                print "Setting learning rate to %f" % learning_rate
-            sys.stdout.flush()
-        # Optionally save model parameters
-        if (save_every and epoch % save_every == 0):
-          filename = "./data/%s-%d-%d-%d.npz" % (model.__class__.__name__, model.hidden_dim, model.word_dim, epoch)
-          save_model_parameters_theano(filename, model)
+        # Optionally do callback
+        if (callback and callback_every and num_examples_seen % callback_every == 0):
+            callback(model, num_examples_seen)
         # For each training example...
         for i in np.random.permutation(len(y_train)):
             # One SGD step
@@ -95,44 +77,30 @@ def train_with_sgd(model, X_train, y_train, learning_rate=0.005, nepoch=100, dec
             num_examples_seen += 1
     return losses
 
-def generate_sentence(model):
-    # We start the sentence with the start token
-    new_sentence = [word_to_index[sentence_start_token]]
-    # Repeat until we get an end token
-    while not new_sentence[-1] == word_to_index[sentence_end_token]:
-        next_word_probs = model.forward_propagation(new_sentence)
-        sampled_word = word_to_index[unknown_token]
-        # We don't want to sample unknown words
-        while sampled_word == word_to_index[unknown_token]:
-            samples = np.random.multinomial(1, next_word_probs[-1])
-            sampled_word = np.argmax(samples)
-        new_sentence.append(sampled_word)
-    sentence_str = [index_to_word[x] for x in new_sentence[1:-1]]
-    return sentence_str
-
-
 def save_model_parameters_theano(outfile, model):
     np.savez(outfile,
-      U=model.U.get_value(),
-      W=model.W.get_value(),
-      V=model.V.get_value(),
-      b=model.b.get_value(),
-      c=model.c.get_value())
+        E=model.E.get_value(),
+        U=model.U.get_value(),
+        W=model.W.get_value(),
+        V=model.V.get_value(),
+        b=model.b.get_value(),
+        c=model.c.get_value())
     print "Saved model parameters to %s." % outfile
 
-def load_model_parameters_theano(path, modelClass=GRUTheano):
+def load_model_parameters_theano(path):
     npzfile = np.load(path)
-    U, W, V, b, c = npzfile["U"], npzfile["W"], npzfile["V"], npzfile["b"], npzfile["c"]
-    hidden_dim, word_dim = U.shape[1], U.shape[2]
+    E, U, W, V, b, c = npzfile["E"], npzfile["U"], npzfile["W"], npzfile["V"], npzfile["b"], npzfile["c"]
+    hidden_dim, word_dim = E.shape[0], E.shape[1]
     print "Building model model from %s with hidden_dim=%d word_dim=%d" % (path, hidden_dim, word_dim)
     sys.stdout.flush()
-    model = modelClass(word_dim, hidden_dim=hidden_dim)
+    model = GRUTheano(word_dim, hidden_dim=hidden_dim)
+    model.E.set_value(E)
     model.U.set_value(U)
     model.W.set_value(W)
     model.V.set_value(V)
     model.b.set_value(b)
     model.c.set_value(c)
-    return model    
+    return model 
 
 def gradient_check_theano(model, x, y, h=0.001, error_threshold=0.01):
     # Overwrite the bptt attribute. We need to backpropagate all the way to get the correct gradient
@@ -140,7 +108,7 @@ def gradient_check_theano(model, x, y, h=0.001, error_threshold=0.01):
     # Calculate the gradients using backprop
     bptt_gradients = model.bptt(x, y)
     # List of all parameters we want to chec.
-    model_parameters = ['U', 'W', 'b', 'V', 'c']
+    model_parameters = ['E', 'U', 'W', 'b', 'V', 'c']
     # Gradient check for each parameter
     for pidx, pname in enumerate(model_parameters):
         # Get the actual parameter value from the mode, e.g. model.W
@@ -179,35 +147,29 @@ def gradient_check_theano(model, x, y, h=0.001, error_threshold=0.01):
             it.iternext()
         print "Gradient check for parameter %s passed." % (pname)
 
-def load_stanford_glove(filename):
-    dct = {}
-    vectors = array.array('d')
-    
-    # Read in the data.
-    with io.open(filename, 'r', encoding='utf-8') as savefile:
-        for i, line in enumerate(savefile):
-            tokens = line.split(' ')
-            word = tokens[0]
-            entries = tokens[1:]
-            dct[word] = i
-            vectors.extend(float(x) for x in entries)
 
-    # Infer word vectors dimensions.
-    np_vectors = np.array(vectors).reshape(len(dct), len(entries))
-    return dct, np_vectors
-# EOF
+def generate_sentence(model, index_to_word, word_to_index):
+    # We start the sentence with the start token
+    new_sentence = [word_to_index[SENTENCE_START_TOKEN]]
+    # Repeat until we get an end token
+    while not new_sentence[-1] == word_to_index[SENTENCE_END_TOKEN]:
+        next_word_probs = model.predict(new_sentence)[-1]
+        samples = np.random.multinomial(1, next_word_probs)
+        sampled_word = np.argmax(samples)
+        new_sentence.append(sampled_word)
+        # Seomtimes we get stuck in an infinite loop if the sentence becomes too long (e.g. .....) :(
+        if len(new_sentence) > 100:
+          return []
+    return new_sentence
 
-def construct_wv_for_vocabulary(glove_filename, index_to_word):
-  # Load Stanford glove vectors and map indices
-  gdic, gvec = load_stanford_glove(glove_filename)
-  # Construct glove word vectors for vocabulary
-  wv_dim = gvec.shape[1]
-  wv = []
-  for i in range(len(index_to_word)):
-      word = index_to_word[i]
-      if word not in gdic:
-          wv.append(np.zeros(wv_dim))
-      else:
-          wv.append(gvec[gdic[word]])
-  return np.array(wv)
+def print_sentence(s, index_to_word):
+  sentence_str = [index_to_word[x] for x in s[1:-1]]
+  print(" ".join(sentence_str))
+  sys.stdout.flush()
 
+def generate_sentences(model, n, index_to_word, word_to_index, min_length=5):
+  for i in range(n):
+      sent = []
+      while len(sent) < min_length:
+          sent = generate_sentence(model, index_to_word, word_to_index)
+      print_sentence(sent, index_to_word)
