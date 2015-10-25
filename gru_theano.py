@@ -40,13 +40,6 @@ class GRUTheano:
     def __theano_build__(self):
         E, V, U, W, b, c = self.E, self.V, self.U, self.W, self.b, self.c
         
-        U_stacked1 = T.concatenate([U[0], U[1], U[2]])
-        b_stacked1 = T.concatenate([b[0], b[1], b[2]])
-        W_stacked1 = T.concatenate([W[0], W[1], W[2]])
-        U_stacked2 = T.concatenate([U[3], U[4], U[5]])
-        b_stacked2 = T.concatenate([b[3], b[4], b[5]])
-        W_stacked2 = T.concatenate([W[3], W[4], W[5]])        
-        
         x = T.ivector('x')
         y = T.ivector('y')
         
@@ -54,34 +47,19 @@ class GRUTheano:
             # This is how we calculated the hidden state in a simple RNN. No longer!
             # s_t = T.tanh(U[:,x_t] + W.dot(s_t1_prev))
             
-            n = self.hidden_dim
             # Word embedding layer
             x_e = E[:,x_t]
-                
-            # GRU Layer 1
-            # z_t1 = T.nnet.sigmoid(U[0].dot(x_e) + W[0].dot(s_t1_prev) + b[0])
-            # r_t1 = T.nnet.sigmoid(U[1].dot(x_e) + W[1].dot(s_t1_prev) + b[1])
-            # c_t1 = T.tanh(U[2].dot(x_e) + W[2].dot(s_t1_prev * r_t1) + b[2])
-            # s_t1 = (T.ones_like(z_t1) - z_t1) * s_t1_prev + z_t1 * c_t1
             
-            Ux1 = U_stacked1.dot(x_e) + b_stacked1
-            Ws1 = W_stacked1.dot(s_t1_prev)
-            z_t1 = T.nnet.sigmoid(Ux1[0:n] + Ws1[0:n])
-            r_t1 = T.nnet.sigmoid(Ux1[n:2*n] + Ws1[n:2*n])
-            c_t1 = T.tanh(Ux1[2*n:3*n] + Ws1[2*n:3*n] * r_t1)
-            s_t1 = (T.ones_like(z_t1) - z_t1) * s_t1_prev + z_t1 * c_t1            
+            # GRU Layer 1
+            z_t1 = T.nnet.sigmoid(U[0].dot(x_e) + W[0].dot(s_t1_prev) + b[0])
+            r_t1 = T.nnet.sigmoid(U[1].dot(x_e) + W[1].dot(s_t1_prev) + b[1])
+            c_t1 = T.tanh(U[2].dot(x_e) + W[2].dot(s_t1_prev * r_t1) + b[2])
+            s_t1 = (T.ones_like(z_t1) - z_t1) * s_t1_prev + z_t1 * c_t1
             
             # GRU Layer 2
-            # z_t2 = T.nnet.sigmoid(U[3].dot(s_t1) + W[3].dot(s_t2_prev) + b[3])
-            # r_t2 = T.nnet.sigmoid(U[4].dot(s_t1) + W[4].dot(s_t2_prev) + b[4])
-            # c_t2 = T.tanh(U[5].dot(s_t1) + W[5].dot(s_t2_prev * r_t2) + b[5])
-            # s_t2 = (T.ones_like(z_t2) - z_t2) * s_t2_prev + z_t2 * c_t2
-
-            Ux2 = U_stacked2.dot(s_t1) + b_stacked2
-            Ws2 = W_stacked2.dot(s_t2_prev)
-            z_t2 = T.nnet.sigmoid(Ux2[0:n] + Ws2[0:n])
-            r_t2 = T.nnet.sigmoid(Ux2[n:2*n] + Ws2[n:2*n])
-            c_t2 = T.tanh(Ux2[2*n:3*n] + Ws2[2*n:3*n] * r_t2)
+            z_t2 = T.nnet.sigmoid(U[3].dot(s_t1) + W[3].dot(s_t2_prev) + b[3])
+            r_t2 = T.nnet.sigmoid(U[4].dot(s_t1) + W[4].dot(s_t2_prev) + b[4])
+            c_t2 = T.tanh(U[5].dot(s_t1) + W[5].dot(s_t2_prev * r_t2) + b[5])
             s_t2 = (T.ones_like(z_t2) - z_t2) * s_t2_prev + z_t2 * c_t2
             
             # Final output calculation
