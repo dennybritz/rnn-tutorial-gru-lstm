@@ -15,8 +15,8 @@ EMBEDDING_DIM = int(os.environ.get("EMBEDDING_DIM", "48"))
 HIDDEN_DIM = int(os.environ.get("HIDDEN_DIM", "128"))
 NEPOCH = int(os.environ.get("NEPOCH", "20"))
 MODEL_OUTPUT_FILE = os.environ.get("MODEL_OUTPUT_FILE")
-INPUT_DATA_FILE = os.environ.get("INPUT_DATA_FILE", "./data/reddit-comments-2015-08.csv")
-PRINT_EVERY = int(os.environ.get("PRINT_EVERY", "1000"))
+INPUT_DATA_FILE = os.environ.get("INPUT_DATA_FILE", "./data/reddit-comments-2015.csv")
+PRINT_EVERY = int(os.environ.get("PRINT_EVERY", "25000"))
 
 if not MODEL_OUTPUT_FILE:
   ts = datetime.now().strftime("%Y-%m-%d-%H-%M")
