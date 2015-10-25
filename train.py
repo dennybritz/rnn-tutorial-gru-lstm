@@ -9,7 +9,6 @@ from datetime import datetime
 from gru_theano import GRUTheano
 
 LEARNING_RATE = float(os.environ.get("LEARNING_RATE", "0.001"))
-SUBSAMPLE = int(os.environ.get("SUBSAMPLE")) if os.environ.get("SUBSAMPLE") else None
 VOCABULARY_SIZE = int(os.environ.get("VOCABULARY_SIZE", "2000"))
 EMBEDDING_DIM = int(os.environ.get("EMBEDDING_DIM", "48"))
 HIDDEN_DIM = int(os.environ.get("HIDDEN_DIM", "128"))
@@ -48,6 +47,6 @@ def sgd_callback(model, num_examples_seen):
   sys.stdout.flush()
 
 for epoch in range(NEPOCH):
-  train_with_sgd(model, x_train[:5001], y_train[:5001], learning_rate=LEARNING_RATE, nepoch=1, decay=0.9, 
+  train_with_sgd(model, x_train, y_train, learning_rate=LEARNING_RATE, nepoch=1, decay=0.9, 
     callback_every=PRINT_EVERY, callback=sgd_callback)
 
