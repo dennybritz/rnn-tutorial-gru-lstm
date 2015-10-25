@@ -38,17 +38,16 @@ sys.stdout.flush()
 # We do this every few examples to understand what's going on
 def sgd_callback(model, num_examples_seen):
   dt = datetime.now().isoformat()
-  loss = model.calculate_loss(x_train[:5000], y_train[:5000])
-  print("%s (%d)" % (dt, num_examples_seen))
+  loss = model.calculate_loss(x_train[:10000], y_train[:10000])
+  print("\n%s (%d)" % (dt, num_examples_seen))
   print("--------------------------------------------------")
   print("Loss: %f" % loss)
-  print("\n")
   generate_sentences(model, 10, index_to_word, word_to_index)
   save_model_parameters_theano(model, MODEL_OUTPUT_FILE)
   print("\n")
   sys.stdout.flush()
 
 for epoch in range(NEPOCH):
-  train_with_sgd(model, x_train[:1000], y_train[:1000], learning_rate=LEARNING_RATE, nepoch=1, decay=0.9, 
+  train_with_sgd(model, x_train[:5001], y_train[:5001], learning_rate=LEARNING_RATE, nepoch=1, decay=0.9, 
     callback_every=PRINT_EVERY, callback=sgd_callback)
 

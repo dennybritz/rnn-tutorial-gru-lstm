@@ -1,4 +1,4 @@
 .ipynb_checkpoints
-*.pyc
 venv
+*.pyc
 *.npz
