@@ -101,12 +101,12 @@ class GRUTheano:
         decay = T.scalar('decay')
         
         # rmsprop cache updates
-        mE = decay * self.mE + (1 - decay) * T.sqr(dE)
-        mU = decay * self.mU + (1 - decay) * T.sqr(dU)
-        mW = decay * self.mW + (1 - decay) * T.sqr(dW)
-        mV = decay * self.mV + (1 - decay) * T.sqr(dV)
-        mb = decay * self.mb + (1 - decay) * T.sqr(db)
-        mc = decay * self.mc + (1 - decay) * T.sqr(dc)
+        mE = decay * self.mE + (1 - decay) * dE ** 2
+        mU = decay * self.mU + (1 - decay) * dU ** 2
+        mW = decay * self.mW + (1 - decay) * dW ** 2
+        mV = decay * self.mV + (1 - decay) * dV ** 2
+        mb = decay * self.mb + (1 - decay) * db ** 2
+        mc = decay * self.mc + (1 - decay) * dc ** 2
         
         self.sgd_step = theano.function(
             [x, y, learning_rate, theano.Param(decay, default=0.9)],
