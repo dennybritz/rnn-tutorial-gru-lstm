@@ -10,7 +10,6 @@ import operator
 import io
 import array
 from datetime import datetime
-from lstm_theano import LSTMTheano
 from gru_theano import GRUTheano
 
 SENTENCE_START_TOKEN = "SENTENCE_START"
@@ -87,13 +86,13 @@ def save_model_parameters_theano(model, outfile):
         c=model.c.get_value())
     print "Saved model parameters to %s." % outfile
 
-def load_model_parameters_theano(path):
+def load_model_parameters_theano(path, modelClass=GRUTheano):
     npzfile = np.load(path)
     E, U, W, V, b, c = npzfile["E"], npzfile["U"], npzfile["W"], npzfile["V"], npzfile["b"], npzfile["c"]
     hidden_dim, word_dim = E.shape[0], E.shape[1]
     print "Building model model from %s with hidden_dim=%d word_dim=%d" % (path, hidden_dim, word_dim)
     sys.stdout.flush()
-    model = GRUTheano(word_dim, hidden_dim=hidden_dim)
+    model = modelClass(word_dim, hidden_dim=hidden_dim)
     model.E.set_value(E)
     model.U.set_value(U)
     model.W.set_value(W)
@@ -148,7 +147,12 @@ def gradient_check_theano(model, x, y, h=0.001, error_threshold=0.01):
         print "Gradient check for parameter %s passed." % (pname)
 
 
-def generate_sentence(model, index_to_word, word_to_index):
+def print_sentence(s, index_to_word):
+    sentence_str = [index_to_word[x] for x in s[1:-1]]
+    print(" ".join(sentence_str))
+    sys.stdout.flush()
+
+def generate_sentence(model, index_to_word, word_to_index, min_length=5):
     # We start the sentence with the start token
     new_sentence = [word_to_index[SENTENCE_START_TOKEN]]
     # Repeat until we get an end token
@@ -157,19 +161,18 @@ def generate_sentence(model, index_to_word, word_to_index):
         samples = np.random.multinomial(1, next_word_probs)
         sampled_word = np.argmax(samples)
         new_sentence.append(sampled_word)
-        # Seomtimes we get stuck in an infinite loop if the sentence becomes too long (e.g. .....) :(
-        if len(new_sentence) > 100:
-          return []
+        # Seomtimes we get stuck if the sentence becomes too long, e.g. "........" :(
+        # And: We don't want sentences with UNKNOWN_TOKEN's
+        if len(new_sentence) > 100 or sampled_word == word_to_index[UNKNOWN_TOKEN]:
+            return None
+    if len(new_sentence) < min_length:
+        return None
     return new_sentence
 
-def print_sentence(s, index_to_word):
-  sentence_str = [index_to_word[x] for x in s[1:-1]]
-  print(" ".join(sentence_str))
-  sys.stdout.flush()
+def generate_sentences(model, n, index_to_word, word_to_index):
+    for i in range(n):
+        sent = None
+        while not sent:
+            sent = generate_sentence(model, index_to_word, word_to_index)
+        print_sentence(sent, index_to_word)
 
-def generate_sentences(model, n, index_to_word, word_to_index, min_length=5):
-  for i in range(n):
-      sent = []
-      while len(sent) < min_length:
-          sent = generate_sentence(model, index_to_word, word_to_index)
-      print_sentence(sent, index_to_word)
